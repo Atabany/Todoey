@@ -7,14 +7,21 @@
 //
 
 import UIKit
-import CoreData
+//import CoreData
+import RealmSwift
 
 class CategoryViewController: UITableViewController {
     
     
+    let realm = try! Realm() // -> new realm instances
+    
     // MARK: - variables
     
-    var categories = [Category]()
+//    var categories = [Category]()
+    
+    var categories: Results<Category>? //    var categories = [Category]()
+
+
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
@@ -27,12 +34,20 @@ class CategoryViewController: UITableViewController {
         var textField = UITextField()
         let alert = UIAlertController(title: "Add The Category", message: "", preferredStyle: .alert)
         let alertAction = UIAlertAction(title: "Add", style: .default) { (action) in
-            let category = Category(context: self.context)
-            category.name = textField.text!
-            self.categories.append(category)
-            self.saveCategories()
+            
+            // MARK:- Core Data
+//            let category = Category(context: self.context)
+//            category.name = textField.text!
+//            self.categories.append(category)
+//            self.saveCategories()
             // Save the data to core data
-            // tableView
+
+
+            // MARK:- Realm
+            let cateogry = Category()
+            cateogry.name = textField.text!
+            self.save(category: cateogry)
+
         }
         alert.addAction(alertAction)
         alert.addTextField { (alertTextField) in
@@ -53,32 +68,56 @@ class CategoryViewController: UITableViewController {
     }
     
     // MARK: - Data Manipulation Methods
-    func loadCategories(with request: NSFetchRequest<Category> = Category.fetchRequest()) {
-        do {
-            self.categories = try context.fetch(request)
-        } catch {
-            print("finding error loading data from core data \(error)")
-        }
+//    func loadCategories(with request: NSFetchRequest<Category> = Category.fetchRequest()) {
+//        do {
+//            self.categories = try context.fetch(request)
+//        } catch {
+//            print("finding error loading data from core data \(error)")
+//        }
+//        tableView.reloadData()
+//    }
+//
+    
+    
+    func loadCategories() {
+        self.categories = realm.objects(Category.self)
         tableView.reloadData()
     }
     
-    func saveCategories() {
+    
+//    func saveCategories() {
+//        do {
+//            try context.save()
+//        } catch {
+//            print("error saving to core data \(error)")
+//        }
+//        tableView.reloadData()
+//    }
+//
+    func save(category: Category) {
         do {
-            try context.save()
+            try realm.write {
+                realm.add(category)
+            }
         } catch {
-            print("error saving to core data \(error)")
+            print("error saving to realm \(error)")
         }
         tableView.reloadData()
     }
+
+    
     
     // MARK: - TableView Datasource Methods
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categories.count
+        
+        
+        return categories?.count ?? 1
+        
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "categoryCell", for: indexPath)
-        cell.textLabel?.text = categories[indexPath.row].name
+        cell.textLabel?.text = categories?[indexPath.row].name ?? "No Categories Add yet"
         return cell
     }
     
@@ -88,14 +127,10 @@ class CategoryViewController: UITableViewController {
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        
         let destinationVC = segue.destination as! ToDoListVC
-        
         if let indexPath = tableView.indexPathForSelectedRow {
-            destinationVC.selectedCategory = self.categories[indexPath.row]
+            destinationVC.selectedCategory = self.categories?[indexPath.row]
         }
-        
-        
     }
     
     
